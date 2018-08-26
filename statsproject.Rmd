@@ -1,0 +1,268 @@
+---
+title: "Stock Market Analysis using Linear Regression Model"
+output:
+  html_notebook:
+    css: custom.css
+  html_document:
+    df_print: paged
+---
+Dinesh Kumar Govindaraj (A00421724)  
+*** 
+
+__TABLE OF CONTENTS__
+
+* Abstract
+* Introduction & Background
+* Description of Study 
+    + Importing and Cleaning Data
+    + Initial Data Analysis
+    + Building the Linear Regression Model
+    + Descriptive Analysis
+    + Predicting the Linear Regression Model
+* Results and Discussion
+* Conclusion and Future work
+* References
+
+***
+
+#### ABSTRACT
+
+As the business day beings, the stock market is one of the main areas of the financial world that sets in clockwork. Almost all companies have registered shares in the stock market and each day, the market opens up with an opening price and the day closes with a closing price, which may or may not be greater than its opening price. We aim to collect the opening and closing prices of the stock data for [Tesla, Inc.](https://www.tesla.com/en_CA/) (TSLA). With this data, we can fit a model to predict the closing price of any arbitrary opening price which could help stock traders immensly in making a calculated move in the stock market.  
+
+#### INTRODUCTION AND BACKGROUND
+
+In a stock market scenario, we have multiple parameters that go while trading stocks and multiple factors to consider such as Open price, Close price, Volume traded, Revenue of the company, the Net Profit and so on. However, for the scope of this project, we limit our factors to opening and closing price. The idea is that, each day the company opens up with an opening price in the stock market platform and closes up with a closing price which can be higher or lower than the opening price. Idealistically, a stock trader or a financial analyst can find insights on how the opening price affects the closing price. From our regression analysis, we intend to find the closing price for any unknown or arbirary opening price. Paraphrasing it, it can also be said that, given an opening price, what is the most likely closing price. Hence, from the given set of data, we can fit a regression model and then predict values an arbitrary opening price. Mathematically speaking, a linear regression can be defined as follows:
+
+> _"Linear Regression is used to predict the value of an outcome variable Y based on one or more input predictor variables X."_
+
+We pull data from [Yahoo Open Financial Data.](https://ca.finance.yahoo.com/quote/TSLA/history?period1=1490497200&period2=1522033200&interval=1d&filter=history&frequency=1d) From there, we filter out data from 1 Year, and once we read that using R, the only columns that are of importance to us is the _"Open"_ and _"Close"_ fields. We will be doing a linear regression and analysis using these fields. Ideally, we first need to make sure to filter out the columns that we want. Also, to make sure the columns are in the right format for the model we are trying to fit in. We conduct several studies just to make sure the regression model is significant enough for our tests and predictions.  
+
+#### DESCRIPTION OF STUDY  
+
+Once we have the dataset from Yahoo Financial Data, we initiate our study by first pointing our working directory to the directory having the dataset. Once we do that, we can gather the summary of the data given to us and filter out the columns that are necessary for us.  
+
+SETTING UP R
+
+We need to set up R and R markdown so that it points to our directory with the csv file in it. Once we set up the project in R we can now go step by step with the implentation of the regression analysis.
+
+```{r setup}
+knitr::opts_chunk$set(root.dir = "~/Documents/SMUCDA/STATS5520/StatsProject/", echo = TRUE)
+getwd()
+```
+<br>
+
+__IMPORTING AND CLEANING DATA__  
+
+We have saved our dataset locally in a file called "tsla.csv", which is also the stock symbol of Tesla, Inc. We now need to import the dataset and prepare it for analysis.
+
+```{r echo=TRUE}
+#importing csv file into df
+df = read.csv("tsla.csv")
+head(df)
+```
+
+We import the data and list out the data by using the "head" command just to print out the first few rows in the dataset. As we see, there are many columns and out of which, only "Open" and "Close" are of interest to use. Also, on a closer look, we find that "Open" and "Close" are not exactly in a numeric factor format, therefore we process it to convert it to a numeric format along with smoothing the decimal values to whole numbers.
+
+```{r echo=TRUE}
+
+#data cleaning and preprocessing
+
+df$Open = ceiling(as.numeric(as.character(df$Open)))
+
+df$Close = ceiling(as.numeric(as.character(df$Close)))
+
+head(df$Open)
+head(df$Close)
+```
+
+Now, we find that the "Open" and "Close" fields are rounded off and converted to a numeric form. Thus concludes our importing and cleaning of our dataset. Now we are set to start analyzing this data and its significance and how it can be used with regression analysis.
+
+__INITIAL DATA ANALYSIS__
+
+First and foremost, let's look if the existing data follows any sort of relationship among them. We can do so by doing a couple of tests:
+
+  1. Scatter Plot
+  2. Density Plot
+  3. Correlation
+  
+SCATTER PLOT
+
+This is used to analyze if the given data (i.e. Open v Close) follows any linear relationships between the dependent ("Close") variable and independent ("Open") variables.
+
+```{r echo=TRUE}
+
+#scatterplot shows the the closing price for every opening price of the TSLA stock
+scatter.smooth(x=df$Open, y=df$Close, main="Open ~ Close", xlab = "Open Price", ylab = "Close Price") 
+
+```
+
+The scatter plot along with the smoothing line above suggests a linearly increasing relationship between the ‘Close’ and ‘Open’ variables. This is a good thing, as, one of the underlying assumptions in linear regression is that the relationship between the response and predictor variables is linear and additive.
+
+DENSITY PLOT
+
+To see the distribution of the predictor variable. Ideally, a close to normal distribution is preferred. Let's see how to make each one of them.
+
+```{r echo=TRUE}
+#Install this package if it isn't already done.
+#We referred it from here:  https://CRAN.R-project.org/package=e1071
+#install.packages("e1071")
+library(e1071)
+
+# density plot for 'Open Price'
+plot(density(df$Open), main="Density Plot: Open Price", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(df$Open), 2)))  
+```
+
+
+Now, let's do the same for 'Close Price'.
+
+```{r echo=TRUE}
+#Install this package if it isn't already done.
+#We referred it from here:  https://CRAN.R-project.org/package=e1071
+#install.packages("e1071")
+library(e1071)
+
+# density plot for 'Close Price'
+plot(density(df$Close), main="Density Plot: Close Price", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(df$Close), 2)))  
+```
+
+These two density plots from the "Open" and "Close" price form a near bell-shaped curve. Also, the sample size is greater than 30, by which we can also approximate it to be a normally distributed curve.
+
+CORRELATION ANALYSIS
+
+Correlation is a statistical measure that suggests the level of linear dependence between two variables, that occur in pair – just like what we have here in Open and Close. Correlation can take values between -1 to +1.
+
+```{r echo=TRUE}
+cor(df$Open, df$Close)
+```
+
+A value closer to +1 shows a high correlation, i.e. a high dependence between the two variables. 
+
+__BUILDING THE LINEAR REGRESSION MODEL__
+
+Now that we have cleaned the dataset, done our initial analysis on our dataset, let's now build our actual linear regression model.The function used for building linear models is lm(). The lm() function takes in two main arguments, namely: Formula and Data. The data is typically a data.frame and the formula is a object of class formula.
+
+```{r}
+# building the linear regression model on the whole data
+lmodel <- lm(Close ~ Open, data=df)  
+print(lmodel)
+```
+
+A generic linear model will be of the mathematical form Y = β1 + β2 * X + ϵ, where:  
+β1 - Intercept  
+β2 - Slope (Coefficient of X)  
+ϵ - Error  
+
+This can be equated to the general equation of a straight line Y = mX + c
+
+Here, the independent variable X refers to the Open Price. The dependent variable Y refers to the Close price (which we will need to predict), with m and c being slope and intercept respectively.
+
+Therefore, _'Close'_ = 0.9306 * _'Open'_ + 23.1575
+
+
+__DESCRIPTIVE ANALYSIS__
+
+Now let's get into the analysis of our linear model "lmodel". The linear model is built and we have a formula that we can use to predict the "Close" price value if a corresponding "Open" price is known. Before going ahead with a regression model, we have to ensure that it is statistically significant. This can be done by printing the summary statistics for lmodel.
+
+```{r echo=TRUE}
+#shows the summary statistics of the linear model - lmodel
+summary(lmodel)
+```
+
+The summary statistics above tells us a number of things. Let's have a look at a few of them in detail and infer about the statistical significance of our linear model.
+
+__The p-value:__ The p value shows the statistical significance in a model. There are two p-values associated with our model. One of them is the entire model p-value and the other one is the value for each variable in our model, in this case, (Intercept) and 'Open'. The p-Values are very important because, a linear model to be statistically significant only when both these p-Values are less that the pre-determined statistical significance level, which is ideally 0.05. The more the stars beside the variable’s p-Value, the more significant is the variable.
+
+__Null and Alternate Hypothesis:__ In a linear regression model, the null hypothesis states that the coefficients are 0, which means that there doesn't exist any relationship between the two variables. However, from our summary statistics, we see that this isn't the case and we can clearly reject the null hypothesis and accept the alternate hypothesis.
+
+__R-squared:__ R-Squared tells us is the proportion of the variation in the dependent variable (Close) that has been determined by the independent variable by this model. Therefore, the higher the value of R-squared (ideally over 0.70), the better is our model. In our case,  the value of  R-squared is 0.91 which is significantly high.
+
+__Standard Error:__ The standard error shows how best fit the linear model is with our two variables. A lesser standard error (closer to 0) indicates a good fit. Therefore, from our model, we can tell from the standard error that this can be a good fit to our model.
+
+Therefore, considering the above statistical analysis and estimates from the statistics summary, we can conclude that our model is statistically significant and that a linear regression model can be conducted in our model.
+
+__PREDICTING THE LINEAR REGRESSION MODEL__
+
+Now that we have done our created our linear regression model, we have established the statistical significance of the model. We must do prediction in our model and then analyze the accuracy our predicted model. This can be done by splitting our dataset into two as training sets and testing sets. We first create a model with our training set and predict using the test set, and then analyze how the test set is predicted with the training set.
+
+```{r echo=TRUE}
+# Create Training and Test Sets
+# Random sampling with seed
+set.seed(100)  
+
+# indices for training data
+trainIndex <- sample(1:nrow(df), 0.8*nrow(df)) 
+
+# model training data
+trainingSet <- df[trainIndex, ]
+
+# test data
+testSet  <- df[-trainIndex, ] 
+```
+
+We create a random set of samples with a particular seed value. then we use them as indices for the dataset and assign them training set and test set.
+
+Now we develop the model on the training set and then predict the model using the test set.
+
+```{r echo=TRUE}
+# building the model on the training set
+lmod <- lm(Close ~ Open, data=trainingSet)  
+
+# predict using the test set
+closePred <- predict(lmod, testSet)
+
+# summary statistics for lmod on training set
+summary(lmod)
+```
+
+From the model summary on the training set, the model p value and predictor’s p value are less than the significance level, so we know we have a statistically significant model. Also, the R-Square is comparative to the original model built on full data.
+
+#### RESULT AND DISCUSSION
+
+Now that we have our regression model on the training set and having done prediction on the test set. We can find out how our prediction matches to our model and analyze the results.
+
+```{r echo=TRUE}
+actuals_preds <- data.frame(cbind(actuals=testSet$Close, predicteds=closePred))
+correlation_accuracy <- cor(actuals_preds)
+print(correlation_accuracy)
+```
+
+A simple measure of accuracy would be to perform a correlation between the actuals and predicted values. A higher correlation accuracy means that the actuals and predicted values have similar directional movement. From the above result, it can be interpreted as, our predicted model has a correlation accuracy of 94.5 %
+
+Now let's also have a look at a few values in the _'actual_preds' variable to see the meaning of the correlation in detail.
+
+```{r echo=TRUE}
+head(actuals_preds)
+```
+
+Hence, printing our predicted model, we find that the predicted values are almost close to the actual values, thereby forming a strong linear regression model which is statistically significant. Now, let's have a look at the min max accuracy of the predicted model. We can do so as follows:
+
+```{r echo=TRUE}
+# Referred from here: https://stats.stackexchange.com/questions/287143/meaning-of-min-max-accuracy-of-a-regression-model
+
+min_max_accuracy <- mean(apply(actuals_preds, 1, min) / apply(actuals_preds, 1, max))
+print(min_max_accuracy)
+```
+
+Min Max accuracy tells us how far the model's prediction is off. For a perfect model, this measure is 1.0. The lower the measure, the worse the model, based on out-of-sample performance. Therefore, from our min max value, which is 0.98, it is very close to 1.0, which implies our model has a near perfect accuracy.
+
+#### CONCLUSION AND FUTURE WORK
+
+Thus, we have taken a full dataset of Tesla, Inc. using the Yahoo Open Financial Data, from with we have formally done several statistical analysis. As we imported the data, we did a bit of initial data cleaning. Following which, we had done several analysis to our dataset to infer if it was statistically significant or not. Once we had established that, we began to fit a linear model to our dataset on the opening and closing price, followed it up with its statistical analysis. Going further, we predicted the model using test sets and then measured how good our predictions fit the model.
+
+We have covered the basic concepts of linear regression, going ahead for the _future scope_ of this project, we can use multiple independent variables to further enhance our regression model. We can also use advance regreession methods such as logistic regression, multiple regression and even a non-linear regression model. Also, we could do a time-series analysis which can forcast future stock prices and trends.
+
+#### REFERENCES
+
+1. [Introduction to Simple Linear Regression - Gerard E. Dallal, Ph.D.](http://www.jerrydallal.com/LHSP/slr.htm)
+
+2. [Using Twitter To Gauge News Effect on Stock Market Moves - Sam Paglia](http://cs229.stanford.edu/proj2013/Paglia-UsingTwitterNewsandReactionstoPredictFinancialMarketMoves.pdf)
+
+3. [Tesla, Inc. Stock Data From Yahoo Finance Dataset](https://ca.finance.yahoo.com/quote/TSLA/history?p=TSLA)
+
+4. [Using R for Linear Regression](http://www.montefiore.ulg.ac.be/~kvansteen/GBIO0009-1/ac20092010/Class8/Using%20R%20for%20linear%20regression.pdf)
+
+5. [Multiple Regression Analysis: Use Adjusted R-Squared and Predicted R-Squared to Include the Correct Number of Variables](http://blog.minitab.com/blog/adventures-in-statistics-2/multiple-regession-analysis-use-adjusted-r-squared-and-predicted-r-squared-to-include-the-correct-number-of-variables)
+
+6. [How to Correctly Interpret P Values](http://blog.minitab.com/blog/adventures-in-statistics-2/how-to-correctly-interpret-p-values)
+
+7. [Meaning of Min/Max Accuracy of a regression model](https://stats.stackexchange.com/questions/287143/meaning-of-min-max-accuracy-of-a-regression-model)
